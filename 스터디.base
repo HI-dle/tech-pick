@@ -3,6 +3,7 @@ filters:
     - file.ext == "md"
     - '!file.folder.endsWith("템플릿")'
 formulas:
+  선정: if(note.선정주차.isEmpty(), "미선정", "선정")
   주차: note.대상.asFile().properties.선정주차
   토론일: note.대상.asFile().properties.토론일
 properties:
@@ -14,39 +15,28 @@ properties:
     displayName: 토론일
 views:
   - type: table
-    name: 선정
-    filters:
-      and:
-        - note.type == "후보"
-        - '!note.선정주차.isEmpty()'
-    order:
-      - 선정주차
-      - file.name
-      - 링크
-      - 추천자
-      - 선정일
-      - 토론일
-      - 관련링크
-      - 태그
-    sort:
-      - property: 선정주차
-        direction: DESC
-  - type: table
     name: 후보
     filters:
       and:
         - note.type == "후보"
-        - note.선정주차.isEmpty()
+    groupBy:
+      property: formula.선정
+      direction: DESC
     order:
       - file.name
+      - 선정주차
       - 링크
       - 추천자
       - 종류
       - 한줄이유
       - 태그
       - 관련링크
+      - 선정일
+      - 토론일
       - 생성일시
     sort:
+      - property: 선정주차
+        direction: DESC
       - property: 생성일시
         direction: DESC
   - type: table
