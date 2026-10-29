@@ -25,6 +25,7 @@ views:
     order:
       - file.name
       - 선정주차
+      - 출처
       - 링크
       - 추천자
       - 종류

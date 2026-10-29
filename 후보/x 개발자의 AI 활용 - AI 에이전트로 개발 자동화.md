@@ -1,6 +1,7 @@
 ---
 type: 후보
 링크: https://x.ai/bot/guides/grok-bot-for-engineering
+출처: xAI
 추천자: 박지은
 생성일시: 2026-10-29
 종류: 가이드

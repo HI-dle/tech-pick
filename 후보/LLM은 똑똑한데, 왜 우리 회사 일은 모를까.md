@@ -1,6 +1,7 @@
 ---
 type: 후보
 링크: https://toss.tech/article/llm_context_topic
+출처: 토스
 추천자: 한지훈
 생성일시: 2026-10-29
 종류: 블로그
