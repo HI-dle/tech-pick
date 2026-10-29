@@ -1,0 +1,79 @@
+filters:
+  and:
+    - file.ext == "md"
+    - '!file.folder.endsWith("템플릿")'
+formulas:
+  주차: note.대상.asFile().properties.선정주차
+  토론일: note.대상.asFile().properties.토론일
+properties:
+  file.name:
+    displayName: 제목
+  formula.주차:
+    displayName: 주차
+  formula.토론일:
+    displayName: 토론일
+views:
+  - type: table
+    name: 선정
+    filters:
+      and:
+        - note.type == "후보"
+        - '!note.선정주차.isEmpty()'
+    order:
+      - 선정주차
+      - file.name
+      - 링크
+      - 추천자
+      - 선정일
+      - 토론일
+      - 관련링크
+      - 태그
+    sort:
+      - property: 선정주차
+        direction: DESC
+  - type: table
+    name: 후보
+    filters:
+      and:
+        - note.type == "후보"
+        - note.선정주차.isEmpty()
+    order:
+      - file.name
+      - 링크
+      - 추천자
+      - 종류
+      - 한줄이유
+      - 태그
+      - 관련링크
+      - 생성일시
+    sort:
+      - property: 생성일시
+        direction: DESC
+  - type: table
+    name: 정리
+    filters:
+      and:
+        - note.type == "정리"
+    groupBy:
+      property: 대상
+      direction: DESC
+    order:
+      - file.name
+      - 작성자
+      - formula.주차
+      - formula.토론일
+      - 생성일시
+  - type: table
+    name: 토론
+    filters:
+      and:
+        - note.type == "토론"
+    order:
+      - file.name
+      - 주차
+      - 토론일
+      - 대상
+      - 참석
+    sort:
+      - property: 주차
+        direction: DESC
