@@ -2,8 +2,15 @@
 
 매주 읽고 싶은 개발 글(기술블로그 · 논문 · 영상)을 하나 골라 함께 읽고 토론하는 스터디.
 
-- 멤버: 강혜주 · 박지은 · 한지훈
 - 현황판: [[스터디.base]] — 뷰 `선정` / `후보` / `정리` / `토론`
+
+## 멤버
+
+| 이름 | GitHub |
+| --- | --- |
+| 강혜주 | [@hyezuu](https://github.com/hyezuu) |
+| 박지은 | [@je-pa](https://github.com/je-pa) |
+| 한지훈 | [@hanjihoon03](https://github.com/hanjihoon03) |
 
 ## 주간 루틴
 
