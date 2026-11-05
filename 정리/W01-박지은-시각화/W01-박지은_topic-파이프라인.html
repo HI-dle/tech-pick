@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Topic 파이프라인 따라가기</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1d1d1f; --sub:#5b5f66; --line:#d9dbe0;
+  --doc:#2f6fdb; --doc-bg:#e9f0fd; --code:#11865b; --code-bg:#e4f5ee; --chat:#b25b00; --chat-bg:#fbefe1;
+  --ok:#11865b; --bad:#c73a3a; --warn:#b77900; --prop:#7a4cd9; --muted:#8a8f98;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141518; --panel:#1d1f23; --ink:#ececef; --sub:#a3a8b1; --line:#33363d;
+    --doc:#7aa7ff; --doc-bg:#1d2a44; --code:#4cc995; --code-bg:#163327; --chat:#f0a050; --chat-bg:#3a2a17;
+    --ok:#4cc995; --bad:#ff7a7a; --warn:#f2c14e; --prop:#b49bff; --muted:#7d828b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141518; --panel:#1d1f23; --ink:#ececef; --sub:#a3a8b1; --line:#33363d;
+  --doc:#7aa7ff; --doc-bg:#1d2a44; --code:#4cc995; --code-bg:#163327; --chat:#f0a050; --chat-bg:#3a2a17;
+  --ok:#4cc995; --bad:#ff7a7a; --warn:#f2c14e; --prop:#b49bff; --muted:#7d828b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;}
+code,.mono{font-family:var(--mono);font-size:.86em}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--line)}
+header h1{font-size:15px;margin:0;font-weight:650}
+.stages{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.stages button{border:1px solid var(--line);background:var(--panel);color:var(--sub);border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.stages button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 90px}
+section.slide{display:none}
+section.slide.on{display:block}
+h2{font-size:24px;margin:4px 0 4px}
+.lead{color:var(--sub);margin:0 0 18px}
+.frag{opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s;pointer-events:none}
+.frag.shown{opacity:1;transform:none;pointer-events:auto}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3>*,.grid2>*,.axes>*,.rels>*{min-width:0}
+.card code{overflow-wrap:anywhere}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tag{display:inline-block;font-size:11.5px;font-weight:650;padding:1px 8px;border-radius:999px;letter-spacing:.02em}
+.t-doc{background:var(--doc-bg);color:var(--doc)} .t-code{background:var(--code-bg);color:var(--code)} .t-chat{background:var(--chat-bg);color:var(--chat)}
+.src{border-left:4px solid var(--line)} .src.doc{border-left-color:var(--doc)} .src.code{border-left-color:var(--code)} .src.chat{border-left-color:var(--chat)}
+.quote{margin:8px 0 0;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:13.5px}
+.path{color:var(--sub);font-size:12px;word-break:break-all}
+.arrow{text-align:center;color:var(--muted);font-size:20px;margin:6px 0}
+pre.unit{margin:0;padding:10px 12px;background:var(--bg);border-radius:8px;font:11.5px/1.6 var(--mono);white-space:pre;overflow-x:auto}
+pre.unit b{color:var(--sub);font-weight:500}
+.note{font-size:13px;color:var(--sub);margin-top:10px}
+.callout{border:1px dashed var(--line);border-radius:12px;padding:12px 16px;margin-top:16px;font-size:14px}
+.timeline{display:flex;gap:0;margin:8px 0 6px;position:relative}
+.tl{flex:1;position:relative;padding-top:22px;padding-right:10px}
+.tl:before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--line)}
+.tl i{position:absolute;top:2px;left:0;width:14px;height:14px;border-radius:50%;background:var(--panel);border:3px solid var(--muted)}
+.tl.doc i{border-color:var(--doc)} .tl.code i{border-color:var(--code)} .tl.chat i{border-color:var(--chat)}
+.tl .d{font-weight:650;font-size:13px} .tl .x{font-size:13px;color:var(--sub)}
+.pipe{display:flex;gap:8px;align-items:stretch;margin:18px 0}
+.pipe div{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.pipe b{display:block}
+.pipe span{font-size:13px;color:var(--sub)}
+svg text{font-family:inherit}
+.graphwrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--sub);margin:8px 4px 0}
+.legend span:before{content:"";display:inline-block;width:18px;height:0;border-top:2.5px solid currentColor;vertical-align:middle;margin-right:6px}
+.lg-mention{color:var(--muted)} .lg-sup{color:var(--ok)} .lg-con{color:var(--bad)} .lg-prop{color:var(--prop)}
+.lg-prop:before{border-top-style:dashed!important}
+.rels{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.rel{font-size:13.5px}
+.rel .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.badge{font:600 11.5px var(--mono);padding:2px 8px;border-radius:6px;border:1.5px solid currentColor}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)} .prop{color:var(--prop)} .mut{color:var(--muted)}
+.axes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.axis h3{margin:0;font-size:15px}
+.axis .q{font-size:12.5px;color:var(--sub);margin:0 0 8px}
+.axis p{margin:6px 0 0;font-size:13.5px}
+.flow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-top:6px}
+.flow span{padding:2px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--line)}
+.flow span.hit{border-color:var(--warn);color:var(--warn);font-weight:650}
+.ask{font-size:18px;font-weight:600;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 18px;max-width:760px}
+.answer{margin-top:14px}
+.state{font:700 14px var(--mono);padding:4px 12px;border-radius:8px;border:2px solid var(--warn);color:var(--warn);display:inline-block}
+ul.tight{margin:6px 0 0;padding-left:18px} ul.tight li{margin:3px 0;font-size:14px}
+footer{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:12px;padding:10px;background:var(--bg);border-top:1px solid var(--line);font-size:13px;color:var(--sub)}
+footer button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 14px;cursor:pointer}
+#theme{margin-left:8px}
+@media (max-width:820px){
+  .grid3,.grid2,.axes,.rels{grid-template-columns:1fr}
+  .pipe{flex-direction:column}
+  .timeline{flex-direction:column;gap:6px}
+  header{flex-wrap:wrap}
+  main{padding:16px 16px 90px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Topic 파이프라인 · 가상 사례로 따라가기</h1>
+  <nav class="stages" id="stages"></nav>
+</header>
+<main>
+
+<!-- 0. 개요 -->
+<section class="slide" data-name="개요">
+  <h2>"관객 점수에서 본인 반응은 어디까지 빼나?"</h2>
+  <p class="lead">토스 글의 「주문 타임아웃 재시도」 예시와 같은 구조예요. 출처 넷이 서로 다른 시점에 서로 다른 말을 해요.</p>
+
+  <div class="timeline frag">
+    <div class="tl doc"><i></i><div class="d">10-22 · 문서</div><div class="x">기본 정책: <b>게시자 본인</b>만 제외</div></div>
+    <div class="tl doc"><i></i><div class="d">10-22 · 문서</div><div class="x">A 챌린지판: 게시자 본인 제외, 다르면 기본 정책을 따름</div></div>
+    <div class="tl doc"><i></i><div class="d">10-26 · 문서</div><div class="x">개정판: <b>대표 + 참여 확정 크리에이터</b> 제외</div></div>
+    <div class="tl chat"><i></i><div class="d">11-04 · 티켓</div><div class="x">TICKET-17: 판정 시점 결정(D-12)</div></div>
+    <div class="tl code"><i></i><div class="d">11-04 · 코드</div><div class="x"><code>a1b2c3d4</code> (PR #42) develop 반영</div></div>
+  </div>
+
+  <div class="pipe frag">
+    <div><b>1. ingest</b><span>출처마다 다른 원문을 ContentUnit으로</span></div>
+    <div><b>2. extract</b><span>개념·관계 후보 추출, 중복 통합</span></div>
+    <div><b>3. verify</b><span>6가지 축으로 신뢰도 판정</span></div>
+    <div><b>4. serve</b><span>근거·충돌·신뢰 상태와 함께 제공</span></div>
+  </div>
+
+  <div class="callout frag">
+    <b>출처 매핑</b> — 글의 문서·코드·메신저 세 출처를 가상의 영상 공모전 서비스에 대응시켰어요. 실제 사례를 바탕으로 이름·수치·식별자는 모두 바꿨어요.
+    <ul class="tight">
+      <li><span class="tag t-doc">문서</span> <code>policy-docs</code> 출품작 관객 점수 정책 (기본 · A 챌린지 · 개정)</li>
+      <li><span class="tag t-code">코드</span> <code>backend</code> contest · media · member 도메인</li>
+      <li><span class="tag t-chat">메신저 자리</span> 결정 기록이 담긴 <b>TICKET-17</b>로 대체</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 1. ingest -->
+<section class="slide" data-name="1. ingest">
+  <h2>1. ingest — 서로 다른 원문을 하나의 단위로</h2>
+  <p class="lead">글자 수로 자르지 않고, 출처가 가진 <b>의미의 경계</b>(문서 섹션 · 코드 심볼 · 티켓 스레드)대로 자르고 원문 주소를 남겨요.</p>
+  <div class="grid3">
+    <div>
+      <div class="card src doc frag">
+        <span class="tag t-doc">문서 원문</span>
+        <div class="path">출품작 관객 점수 정책.md : 58</div>
+        <div class="quote">운영 계정·게시자 제외: <b>게시자 본인</b>과 {회원 권한}이 {회원 권한 - 직원}·심사위원·관리자 중 하나인 회원의 좋아요·재생·시청·댓글 기록은 모두 제외 … 로그인하지 않은 기록은 포함</div>
+      </div>
+      <div class="arrow frag">↓ 제목 기준 분할 + 상위 제목 계층 저장</div>
+      <div class="card frag">
+<pre class="unit"><b>ContentUnit</b>
+source_type    document
+unit_type      doc_section
+source_uri     policy-docs/contest/
+               출품작 관객 점수 정책.md
+               #기본 집계 제한
+content        "운영 계정·게시자 제외:
+               게시자 본인과 …"
+content_hash   3c9e1d7a52b0…
+updated_at_src 2026-10-22
+metadata
+  heading_path  계산식 › 기본 집계 제한</pre>
+      </div>
+    </div>
+    <div>
+      <div class="card src code frag">
+        <span class="tag t-code">코드 원문</span>
+        <div class="path">src/contest/score/entry-metrics.repository.ts : 120</div>
+        <div class="quote mono">// 운영 계정(관리자·심사위원·직원)과 본인(대표 + 그 영상의 참여 확정자, TICKET-17)의 기록은 뺀다</div>
+      </div>
+      <div class="arrow frag">↓ 심볼로 파싱 → 동작 단위 카드</div>
+      <div class="card frag">
+<pre class="unit"><b>CodeSemanticCard</b>
+subject      공모전 출품작 관객 점수 지표 집계
+behavior     운영 계정·대표·참여 확정자의
+             시청·좋아요·댓글 기록을 빼고 집계
+domain_terms 관객 점수, 본인 제외, 참여 확정자
+code_terms   collectEntryMetrics,
+             excludeStaff,
+             excludeConfirmedMember
+spans[]      repo   backend
+             file   src/contest/score/
+                    entry-metrics.repository.ts
+             line   96~
+             symbol collectEntryMetrics
+commit_sha   a1b2c3d4</pre>
+      </div>
+    </div>
+    <div>
+      <div class="card src chat frag">
+        <span class="tag t-chat">티켓 원문 (메신저 자리)</span>
+        <div class="path">TICKET-17 · backend#31 · PR #42</div>
+        <div class="quote">정기 배치·최종 평가·주간 평가 모두 <b>실행 시점의 확정 상태로 판정</b> — 확정 전에 남긴 기록도 제외 … 최종 평가가 저장된 공모전은 그 뒤 확정·제거로 다시 계산하지 않는다</div>
+      </div>
+      <div class="arrow frag">↓ 스레드 단위 요약 (결정 상태 보존)</div>
+      <div class="card frag">
+<pre class="unit"><b>ContentUnit</b>
+source_type  messenger (→ 티켓)
+unit_type    ticket_thread
+source_uri   pm.example.com/tickets/17
+content
+  질문     확정 전 반응·태그 제거는?
+  결정     D-12 실행 시점 확정 상태로 판정
+  결정     최종 평가 저장 뒤 재계산 없음
+  범위 밖  콘텐츠·시리즈 점수(TICKET-15)
+metadata
+  ticket_status 리뷰
+  identifiers   excludeConfirmedMember,
+                entry_members</pre>
+      </div>
+    </div>
+  </div>
+  <p class="note frag">티켓 요약은 글의 메신저 제약을 따라요: 식별자는 원문 그대로, 결정과 범위 밖을 나눠 적고, 확인되지 않은 합의는 만들지 않아요.</p>
+</section>
+
+<!-- 2. extract -->
+<section class="slide" data-name="2. extract">
+  <h2>2. extract — 개념과 관계로 연결</h2>
+  <p class="lead">→ 키를 누를 때마다 그래프가 한 단계씩 자라요: 개념 후보 → 같은 unit 안의 관계 → 중복·동의어 후보 → 문서↔코드 관계.</p>
+  <div class="graphwrap">
+  <svg id="graph" viewBox="0 0 1000 470" width="100%" role="img" aria-label="개념 관계 그래프">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker>
+    </defs>
+    <!-- 출처 노드 -->
+    <g class="gsrc">
+      <g transform="translate(10,30)"><rect width="250" height="60" rx="10" fill="var(--doc-bg)" stroke="var(--doc)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--doc)">기본 정책 (10-22)</text><text x="12" y="44" font-size="12" fill="var(--sub)">기본 집계 제한 · 유효 댓글수</text></g>
+      <g transform="translate(10,115)"><rect width="250" height="60" rx="10" fill="var(--doc-bg)" stroke="var(--doc)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--doc)">A 챌린지판 (10-22)</text><text x="12" y="44" font-size="12" fill="var(--sub)">댓글·답글 집계 기준</text></g>
+      <g transform="translate(10,200)"><rect width="250" height="60" rx="10" fill="var(--doc-bg)" stroke="var(--doc)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--doc)">개정판 (10-26)</text><text x="12" y="44" font-size="12" fill="var(--sub)">본인 제외 #개정</text></g>
+      <g transform="translate(10,330)"><rect width="250" height="60" rx="10" fill="var(--chat-bg)" stroke="var(--chat)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--chat)">TICKET-17 (11-04)</text><text x="12" y="44" font-size="12" fill="var(--sub)">D-12 판정 시점</text></g>
+      <g transform="translate(740,60)"><rect width="250" height="60" rx="10" fill="var(--code-bg)" stroke="var(--code)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--code)">collectEntryMetrics</text><text x="12" y="44" font-size="12" fill="var(--sub)">contest · a1b2c3d4</text></g>
+      <g transform="translate(740,250)"><rect width="250" height="60" rx="10" fill="var(--code-bg)" stroke="var(--code)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--code)">MemberRole / excludeStaff</text><text x="12" y="44" font-size="12" fill="var(--sub)">member · STAFF = 7</text></g>
+      <g transform="translate(740,380)"><rect width="250" height="60" rx="10" fill="var(--code-bg)" stroke="var(--code)"/><text x="12" y="24" font-size="13" font-weight="650" fill="var(--code)">MIN_WATCH_SECONDS = 5</text><text x="12" y="44" font-size="12" fill="var(--sub)">media · watch.constants.ts:12</text></g>
+    </g>
+
+    <!-- 단계 2: unit 안 관계 (mentions) -->
+    <g class="frag" fill="none" stroke="var(--muted)" stroke-width="1.4" color="var(--muted)">
+      <path d="M260,55 C320,55 330,60 385,60" marker-end="url(#ah)"/>
+      <path d="M260,145 C320,145 330,70 385,66"  marker-end="url(#ah)"/>
+      <path d="M260,230 C320,230 330,140 385,140" marker-end="url(#ah)"/>
+      <path d="M260,236 C320,236 330,220 385,220" marker-end="url(#ah)"/>
+      <path d="M260,360 C320,360 330,226 385,226" marker-end="url(#ah)"/>
+      <path d="M260,65 C330,80 330,300 385,300"  marker-end="url(#ah)"/>
+      <path d="M260,75 C330,110 330,400 385,400" marker-end="url(#ah)"/>
+      <path d="M740,85 C680,85 670,140 615,140" marker-end="url(#ah)"/>
+      <path d="M740,92 C680,92 670,220 615,220" marker-end="url(#ah)"/>
+      <path d="M740,280 C680,280 670,300 615,300" marker-end="url(#ah)"/>
+      <path d="M740,410 C680,410 670,400 615,400" marker-end="url(#ah)"/>
+    </g>
+
+    <!-- 개념 노드 (단계 1) -->
+    <g class="frag">
+      <g transform="translate(385,38)"><rect width="230" height="46" rx="23" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="115" y="28" text-anchor="middle" font-size="14" font-weight="650" fill="var(--ink)">게시자 본인</text></g>
+      <g transform="translate(385,118)"><rect width="230" height="46" rx="23" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="115" y="28" text-anchor="middle" font-size="14" font-weight="650" fill="var(--ink)">대표 크리에이터</text></g>
+      <g transform="translate(385,198)"><rect width="230" height="46" rx="23" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="115" y="28" text-anchor="middle" font-size="14" font-weight="650" fill="var(--ink)">참여 확정 크리에이터</text></g>
+      <g transform="translate(385,278)"><rect width="230" height="46" rx="23" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="115" y="28" text-anchor="middle" font-size="14" font-weight="650" fill="var(--ink)">운영 계정 · 직원</text></g>
+      <g transform="translate(385,378)"><rect width="230" height="46" rx="23" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="115" y="28" text-anchor="middle" font-size="14" font-weight="650" fill="var(--ink)">시청 = 5초 이상</text></g>
+    </g>
+
+    <!-- 단계 3: 중복·동의어 후보 -->
+    <g class="frag" fill="none" stroke="var(--prop)" stroke-width="2" stroke-dasharray="6 5">
+      <path d="M615,62 C680,70 680,132 615,140"/>
+      <text x="672" y="104" font-size="12" fill="var(--prop)" stroke="none" font-weight="650">같은 사람?</text>
+      <text x="385" y="344" font-size="11.5" fill="var(--prop)" stroke="none">{회원 권한 - 직원} · {회원 소속 - 직원} · STAFF</text>
+    </g>
+
+    <!-- 단계 4: 문서↔코드 관계 -->
+    <!-- 같은 개념을 거쳐 문서와 코드가 만나는 경로를 색으로 덧칠 -->
+    <g class="frag" fill="none" stroke-width="3">
+      <g stroke="var(--ok)">
+        <path d="M260,230 C320,230 330,140 385,140"/><path d="M260,236 C320,236 330,220 385,220"/>
+        <path d="M740,85 C680,85 670,140 615,140"/><path d="M740,92 C680,92 670,220 615,220"/>
+        <path d="M260,75 C330,110 330,400 385,400"/><path d="M740,410 C680,410 670,400 615,400"/>
+      </g>
+      <g stroke="var(--bad)">
+        <path d="M260,55 C320,55 330,60 385,60"/><path d="M260,145 C320,145 330,70 385,66"/>
+      </g>
+      <text x="500" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="var(--bad)" stroke="none">기본·A 챌린지판 "게시자 본인만" → contradicted_by 코드</text>
+      <text x="500" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ok)" stroke="none">개정판 → supported_by 코드</text>
+      <text x="500" y="448" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ok)" stroke="none">기본 정책 "5초 이상" → supported_by 코드</text>
+    </g>
+  </svg>
+  <div class="legend"><span class="lg-mention">unit 안에서 함께 등장</span><span class="lg-prop">중복·동의어 후보 (자동 통합 안 함)</span><span class="lg-sup">supported_by</span><span class="lg-con">contradicted_by</span></div>
+  </div>
+
+  <div class="rels frag">
+    <div class="card rel"><div class="h"><span class="badge prop">Synonym Proposal</span><b>게시자 본인 ≟ 대표 크리에이터</b></div>
+      티켓 TICKET-17은 "대표 제외는 기존 게시자 본인 조건이 맡는다"라고 적어 둘을 같게 다루지만, 정책은 판에 따라 다른 용어를 써요. 애매한 별칭이라 <b>자동으로 합치지 않고 사람의 승인을 기다려요</b>.</div>
+    <div class="card rel"><div class="h"><span class="badge prop">Synonym Proposal</span><b>직원: 이름 셋</b></div>
+      관객 점수 정책은 <code>{회원 권한 - 직원}</code>, 용어집은 "기존 명칭, 현재는 <code>{회원 소속 - 직원}</code>", 코드는 <code>members.role = STAFF(7)</code>. 대표 개념 후보는 용어집의 현재 이름이에요.</div>
+  </div>
+  <div class="rels frag">
+    <div class="card rel"><div class="h"><span class="badge ok">supported_by</span>개정판 → collectEntryMetrics</div>"대표 크리에이터 및 해당 영상의 참여 확정 크리에이터 본인 … 기록은 모두 제외" ↔ <code>excludeConfirmedMember</code> 조건 3곳 (시청·좋아요·댓글)</div>
+    <div class="card rel"><div class="h"><span class="badge bad">contradicted_by</span>기본 정책 · A 챌린지판 → 같은 코드</div>"게시자 본인 … 제외"만 적혀 있어, 참여자 반응까지 빼는 현재 코드와 충돌해요.</div>
+    <div class="card rel"><div class="h"><span class="badge ok">supported_by</span>기본 정책 → MIN_WATCH_SECONDS</div>"시청률 점수 = (5초 이상 시청수 ÷ 재생수) × 2점" ↔ <code>s.stay &gt;= MIN_WATCH_SECONDS</code> (= 5)</div>
+    <div class="card rel"><div class="h"><span class="badge mut">저장하는 것</span>관계마다</div>종류 · 근거 인용 · 신뢰도 · 판단 상태. 검증 호출이 실패하거나 신뢰도가 낮으면 관계를 만들지 않아요.</div>
+  </div>
+</section>
+
+<!-- 3. verify -->
+<section class="slide" data-name="3. verify">
+  <h2>3. verify — 6가지 축으로 판정</h2>
+  <p class="lead">먼저 규칙(해시·anchor)으로 바뀐 범위만 고르고, 바뀐 것만 LLM으로 의미를 다시 검증해요.</p>
+  <div class="axes">
+    <div class="card axis frag"><h3>Granularity <span class="mut">(세분성)</span></h3><p class="q">개념이 될 만한 단위인가?</p>
+      <span class="badge ok">pass</span> "본인 반응 제외"<br><span class="badge bad">drop</span> "14:00~14:59" — 1시간 묶음의 예시일 뿐 개념이 아님
+      <p>수십 KB짜리 정책 전체가 아니라 「기본 집계 제한」 섹션 하나가 unit이에요.</p></div>
+    <div class="card axis frag"><h3>Faithfulness <span class="mut">(충실성)</span></h3><p class="q">원문이 뒷받침하는가?</p>
+      <span class="badge ok">supported</span> 개정판 → 코드<br><span class="badge bad">refuted</span> 기본 정책 → 코드
+      <p>NLI 방식: supported / refuted / not enough info</p></div>
+    <div class="card axis frag"><h3>Staleness <span class="mut">(낡음)</span></h3><p class="q">원문이 지금도 그렇게 말하는가?</p>
+      <div class="flow"><span>anchor 있음?</span>→<span>예</span>→<span class="hit">span hash 변경 (a1b2c3d4)</span>→<span>faithfulness 재검증</span></div>
+      <p>코드는 11-04에 바뀌었는데 기본 정책은 10-22 그대로 → <b class="warn">stale_risk</b></p></div>
+    <div class="card axis frag"><h3>Canonicality <span class="mut">(정규성)</span></h3><p class="q">다른 이름이 같은 대상인가?</p>
+      <span class="badge prop">proposal</span> 게시자 본인 ≟ 대표 크리에이터<br><span class="badge prop">proposal</span> 직원 이름 셋 → <code>{회원 소속 - 직원}</code>
+      <p>애매하면 합치지 않고 사람 승인 대기.</p></div>
+    <div class="card axis frag"><h3>Consistency <span class="mut">(일관성)</span></h3><p class="q">출처끼리 양립하는가?</p>
+      <span class="badge ok">consistent</span> 기본 정책 ↔ A 챌린지판<br><span class="badge bad">contradicts</span> 기본 정책 ↔ 개정판<br><span class="badge ok">complementary</span> 개정판 ↔ TICKET-17 (판정 시점을 덧붙임)
+      <p>충돌을 발견해도 한쪽을 조용히 지우거나 승자를 정하지 않아요.</p></div>
+    <div class="card axis frag"><h3>Coverage <span class="mut">(포괄성)</span></h3><p class="q">빠진 것은?</p>
+      <span class="badge warn">gap</span> 퇴사자 반응을 세는지
+      <p>코드에는 <code>ALUMNI = 8 // 점수 집계에 포함</code>이 있지만, 관객 점수 정책 두 판 모두 퇴사자를 언급하지 않아요. 코드에만 있는 규칙이에요.</p></div>
+  </div>
+</section>
+
+<!-- 4. serve -->
+<section class="slide" data-name="4. serve">
+  <h2>4. serve — 답이 아니라 믿을 수 있는 컨텍스트를 건넴</h2>
+  <p class="lead">"Topic은 답을 만드는 시스템이 아니에요. 답을 만드는 데 사용되는 컨텍스트를 믿을 수 있게 만드는 시스템이에요."</p>
+  <div class="ask frag">💬 공모전 출품작에 참여 크리에이터가 누른 좋아요도 관객 점수에서 빠지나요?</div>
+  <div class="grid2 answer">
+    <div class="card frag">
+      <span class="state">partly_trusted</span>
+      <p style="margin:10px 0 0"><b>빠져요.</b> 단, 그 영상의 참여 태그를 <b>참여 확정</b>한 경우에만이고, 확정 전에 누른 좋아요도 빠져요. 최종 평가가 저장된 뒤 확정·제거가 생겨도 다시 계산하지 않아요.</p>
+      <ul class="tight">
+        <li><span class="tag t-code">코드</span> <code>excludeConfirmedMember</code> · a1b2c3d4 · develop</li>
+        <li><span class="tag t-doc">문서</span> 개정판 「기본 집계 제한 › 본인 제외 #개정」</li>
+        <li><span class="tag t-chat">티켓</span> TICKET-17 D-12 「실행 시점의 확정 상태로 판정」</li>
+      </ul>
+    </div>
+    <div class="card frag">
+      <b>같이 건네는 경고</b>
+      <ul class="tight">
+        <li><span class="badge bad">disputed</span> 기본 정책 · A 챌린지판은 "게시자 본인"만 제외 → 코드와 충돌</li>
+        <li><span class="badge warn">stale_risk</span> 기본 정책(10-22)이 개정 내용을 아직 반영하지 않음</li>
+        <li><span class="badge prop">사람 판단 대기</span> 게시자 본인 ≟ 대표 크리에이터</li>
+        <li><span class="badge mut">insufficient_evidence</span> 퇴사자 반응 포함 여부는 문서에 근거 없음</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout frag">
+    <b>정리</b> — 검색만 했다면 기본 정책의 "게시자 본인만 제외"가 그럴듯한 답으로 나왔을 거예요. Topic은 그 문장이 <b>낡았고, 코드와 충돌하며, 더 새로운 개정판과 결정 기록이 있다</b>는 사실까지 함께 건네요.
+  </div>
+</section>
+
+</main>
+<footer>
+  <button id="prev" aria-label="이전">←</button>
+  <span id="pos"></span>
+  <button id="next" aria-label="다음">→</button>
+  <button id="theme" aria-label="테마 전환">◐</button>
+</footer>
+<script>
+const slides=[...document.querySelectorAll('section.slide')];
+const nav=document.getElementById('stages');
+let s=0;
+slides.forEach((el,i)=>{const b=document.createElement('button');b.textContent=el.dataset.name;b.onclick=()=>go(i,true);nav.appendChild(b);});
+const frags=i=>[...slides[i].querySelectorAll('.frag')];
+const shown=i=>frags(i).filter(f=>f.classList.contains('shown')).length;
+function render(){
+  slides.forEach((el,i)=>el.classList.toggle('on',i===s));
+  [...nav.children].forEach((b,i)=>b.classList.toggle('on',i===s));
+  document.getElementById('pos').textContent=`${s+1} / ${slides.length} · ${shown(s)} / ${frags(s).length}`;
+  try{history.replaceState(null,'','#'+s)}catch(e){}
+}
+function go(i,all){s=Math.max(0,Math.min(slides.length-1,i));frags(s).forEach(f=>f.classList.toggle('shown',!!all));render();window.scrollTo(0,0);}
+function next(){const f=frags(s).find(f=>!f.classList.contains('shown'));if(f){f.classList.add('shown');render();}else if(s<slides.length-1)go(s+1,false);}
+function prev(){const f=frags(s).filter(f=>f.classList.contains('shown')).pop();if(f){f.classList.remove('shown');render();}else if(s>0)go(s-1,true);}
+document.addEventListener('keydown',e=>{if(['ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();next();}if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}});
+document.getElementById('next').onclick=next;document.getElementById('prev').onclick=prev;
+document.getElementById('theme').onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';};
+const h0=parseInt(location.hash.slice(1))||0; go(h0,h0>0); // 해시로 바로 열면 그 장을 전부 펼친 상태로
+</script>
+</body>
+</html>
