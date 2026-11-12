@@ -2,7 +2,7 @@
 type: 후보
 링크: https://toss.tech/article/agent-platform-foundation
 출처: 토스
-추천자: 박지은
+추천자: 한지훈
 생성일시: 2026-11-12
 종류: 블로그
 한줄이유:
